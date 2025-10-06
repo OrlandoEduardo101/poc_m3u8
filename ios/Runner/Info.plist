@@ -45,5 +45,19 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+	<key>UISupportsDocumentBrowser</key>
+	<false/>
+	<key>UIRequiresPersistentWiFi</key>
+	<false/>
+	<key>AVAudioSessionCategory</key>
+	<string>AVAudioSessionCategoryPlayback</string>
+	<key>AVAudioSessionCategoryOptions</key>
+	<array>
+		<string>mixWithOthers</string>
+	</array>
 </dict>
 </plist>
