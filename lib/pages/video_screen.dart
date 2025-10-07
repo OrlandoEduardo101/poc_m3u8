@@ -39,6 +39,14 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final vc = context.watch<VideoController>();
+    
+    // Se estiver minimizado, volta para a home
+    if (vc.isMinimized) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pop(context);
+      });
+    }
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('HLS Player PoC'),
@@ -46,7 +54,13 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
           IconButton(
             icon: const Icon(Icons.picture_in_picture_alt),
             onPressed: vc.enterPip,
-          )
+          ),
+          IconButton(
+            icon: const Icon(Icons.minimize),
+            onPressed: () {
+              vc.setMinimized(true);
+            },
+          ),
         ],
       ),
       body: Stack(
@@ -66,11 +80,6 @@ class _VideoScreenState extends State<VideoScreen> with WidgetsBindingObserver {
           ),
           const MiniPlayer(),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => vc.setMinimized(!vc.isMinimized),
-        label: Text(vc.isMinimized ? 'Restaurar' : 'Minimizar'),
-        icon: Icon(vc.isMinimized ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
       ),
     );
   }

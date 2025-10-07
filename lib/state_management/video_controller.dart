@@ -25,7 +25,7 @@ class VideoController extends ChangeNotifier {
   void Function(BetterPlayerEvent event)? _eventListener;
 
   Future<void> initialize() async {
-    if (_isInitialized) return;
+    if (_isInitialized && _playerController != null) return;
 
     final dataSource = BetterPlayerDataSource(
       BetterPlayerDataSourceType.network,
@@ -74,32 +74,49 @@ class VideoController extends ChangeNotifier {
   }
 
   void togglePlayPause() {
-    if (_playerController == null) return;
-    final isNowPlaying = _playerController!.isPlaying();
-    if (isNowPlaying == true) {
-      _playerController!.pause();
-    } else {
-      _playerController!.play();
+    if (_playerController == null || !_isInitialized) return;
+    try {
+      final isNowPlaying = _playerController!.isPlaying();
+      if (isNowPlaying == true) {
+        _playerController!.pause();
+      } else {
+        _playerController!.play();
+      }
+    } catch (e) {
+      print('Error toggling play/pause: $e');
     }
   }
 
   Future<void> seekRelative(Duration offset) async {
-    if (_playerController == null) return;
-    final position = _playerController!.videoPlayerController!.value.position;
-    final target = position + offset;
-    await _playerController!.seekTo(target < Duration.zero ? Duration.zero : target);
+    if (_playerController == null || !_isInitialized) return;
+    try {
+      final position = _playerController!.videoPlayerController!.value.position;
+      final target = position + offset;
+      await _playerController!.seekTo(target < Duration.zero ? Duration.zero : target);
+    } catch (e) {
+      print('Error seeking: $e');
+    }
   }
 
   Future<void> setQualityTrack(BetterPlayerAsmsTrack track) async {
-    if (_playerController == null) return;
-    _playerController!.setTrack(track);
-    _tracks = _playerController!.betterPlayerAsmsTracks;
-    notifyListeners();
+    if (_playerController == null || !_isInitialized) return;
+    try {
+      _playerController!.setTrack(track);
+      _tracks = _playerController!.betterPlayerAsmsTracks;
+      notifyListeners();
+    } catch (e) {
+      print('Error setting quality track: $e');
+    }
   }
 
   void enterPip() {
     // BetterPlayer handles PiP on supported platforms when enabled in configuration
-    _playerController?.enablePictureInPicture(_playerController!.betterPlayerGlobalKey!);
+    if (_playerController == null || !_isInitialized) return;
+    try {
+      _playerController?.enablePictureInPicture(_playerController!.betterPlayerGlobalKey!);
+    } catch (e) {
+      print('Error entering PiP: $e');
+    }
   }
 
   void setMinimized(bool value) {
