@@ -23,14 +23,70 @@ class HomePage extends StatelessWidget {
                 style: TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 24),
+              const Text('Lista de Vídeos', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
               Card(
                 child: ListTile(
-                  leading: const Icon(Icons.play_circle_outline, size: 48),
-                  title: const Text('Abrir Player de Vídeo'),
-                  subtitle: const Text('Inicie o streaming HLS com miniplayer'),
-                  trailing: const Icon(Icons.arrow_forward_ios),
+                  leading: const Icon(Icons.play_circle_outline, size: 48, color: Colors.red),
+                  title: const Text('Vídeo Demo 1'),
+                  subtitle: const Text('Exemplo de streaming HLS - Qualidade HD • 15:30'),
+                  trailing: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.arrow_forward_ios),
+                      Text('HD', style: TextStyle(fontSize: 10, color: Colors.red)),
+                    ],
+                  ),
                   onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const VideoScreen()));
+                    _openVideoPlayer(
+                      context,
+                      'Vídeo Demo 1',
+                      'https://vz-d6522dee-d49.b-cdn.net/9ee486e7-76c6-40bc-b810-b8882047cead/playlist.m3u8?video=1',
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.play_circle_outline, size: 48, color: Colors.blue),
+                  title: const Text('Vídeo Demo 2'),
+                  subtitle: const Text('Streaming de alta qualidade - Múltiplas resoluções • 22:45'),
+                  trailing: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.arrow_forward_ios),
+                      Text('4K', style: TextStyle(fontSize: 10, color: Colors.blue)),
+                    ],
+                  ),
+                  onTap: () {
+                    _openVideoPlayer(
+                      context,
+                      'Vídeo Demo 2',
+                      'https://vz-d6522dee-d49.b-cdn.net/9ee486e7-76c6-40bc-b810-b8882047cead/playlist.m3u8?video=2',
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.play_circle_outline, size: 48, color: Colors.green),
+                  title: const Text('Vídeo Demo 3'),
+                  subtitle: const Text('Conteúdo adaptativo HLS - Experiência premium • 08:12'),
+                  trailing: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.arrow_forward_ios),
+                      Text('UHD', style: TextStyle(fontSize: 10, color: Colors.green)),
+                    ],
+                  ),
+                  onTap: () {
+                    _openVideoPlayer(
+                      context,
+                      'Vídeo Demo 3',
+                      'https://vz-d6522dee-d49.b-cdn.net/9ee486e7-76c6-40bc-b810-b8882047cead/playlist.m3u8?video=3',
+                    );
                   },
                 ),
               ),
@@ -90,7 +146,11 @@ class HomePage extends StatelessWidget {
                           const SizedBox(height: 8),
                           ElevatedButton.icon(
                             onPressed: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => const VideoScreen()));
+                              _openVideoPlayer(
+                                context,
+                                'Vídeo atual',
+                                'https://vz-d6522dee-d49.b-cdn.net/9ee486e7-76c6-40bc-b810-b8882047cead/playlist.m3u8',
+                              );
                             },
                             icon: const Icon(Icons.play_arrow),
                             label: const Text('Voltar ao Player'),
@@ -106,6 +166,19 @@ class HomePage extends StatelessWidget {
           ),
           const MiniPlayer(),
         ],
+      ),
+    );
+  }
+
+  void _openVideoPlayer(BuildContext context, String videoTitle, String videoUrl) {
+    // Atualiza o controller com o novo vídeo
+    final videoController = VideoPlayerInheritedWidget.of(context)!.videoController;
+    videoController.updatePlayerConfig(newUrl: videoUrl, videoTitle: videoTitle);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VideoScreen(videoTitle: videoTitle, videoUrl: videoUrl),
       ),
     );
   }

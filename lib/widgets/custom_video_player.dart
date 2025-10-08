@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:m3u8_player_plus/m3u8_player_plus.dart';
 import '../video_player_provider.dart';
+import 'shared_video_player.dart';
 
 class CustomVideoPlayer extends StatefulWidget {
   final Function(bool) setMinimized;
@@ -35,7 +35,7 @@ class _CustomVideoPlayerState extends State<CustomVideoPlayer> {
             fit: StackFit.expand,
             children: [
               // M3U8 Player Widget
-              M3u8PlayerWidget(config: videoState.playerConfig!),
+              SharedVideoPlayerWidget(config: videoState.playerConfig!, isMinimized: false),
 
               // Gesture detector for swipe to minimize
               GestureDetector(

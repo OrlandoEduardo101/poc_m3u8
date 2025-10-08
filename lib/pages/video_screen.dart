@@ -5,7 +5,10 @@ import '../widgets/mini_player.dart';
 import '../video_player_provider.dart';
 
 class VideoScreen extends StatefulWidget {
-  const VideoScreen({super.key});
+  final String? videoTitle;
+  final String? videoUrl;
+
+  const VideoScreen({super.key, this.videoTitle, this.videoUrl});
 
   @override
   State<VideoScreen> createState() => _VideoScreenState();
@@ -32,7 +35,7 @@ class _VideoScreenState extends State<VideoScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('HLS Player PoC'),
+            title: Text(widget.videoTitle ?? 'HLS Player PoC'),
             actions: [IconButton(icon: const Icon(Icons.minimize), onPressed: () => _setMinimized(true))],
           ),
           body: Stack(
@@ -41,9 +44,18 @@ class _VideoScreenState extends State<VideoScreen> {
                 children: [
                   CustomVideoPlayer(setMinimized: _setMinimized),
                   const SizedBox(height: 24),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('Player M3U8 com controles avançados. Arraste para minimizar.'),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (widget.videoTitle != null) ...[
+                          Text(widget.videoTitle!, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                        ],
+                        const Text('Player M3U8 com controles avançados. Arraste para minimizar.'),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 800),
                 ],

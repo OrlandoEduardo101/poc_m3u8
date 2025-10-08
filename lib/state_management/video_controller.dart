@@ -9,6 +9,7 @@ class VideoState {
   final Duration position;
   final Duration duration;
   final bool isFullscreen;
+  final String currentVideoTitle;
 
   const VideoState({
     this.playerConfig,
@@ -18,6 +19,7 @@ class VideoState {
     this.position = Duration.zero,
     this.duration = Duration.zero,
     this.isFullscreen = false,
+    this.currentVideoTitle = 'Stream HLS',
   });
 
   VideoState copyWith({
@@ -28,6 +30,7 @@ class VideoState {
     Duration? position,
     Duration? duration,
     bool? isFullscreen,
+    String? currentVideoTitle,
   }) {
     return VideoState(
       playerConfig: playerConfig ?? this.playerConfig,
@@ -37,6 +40,7 @@ class VideoState {
       position: position ?? this.position,
       duration: duration ?? this.duration,
       isFullscreen: isFullscreen ?? this.isFullscreen,
+      currentVideoTitle: currentVideoTitle ?? this.currentVideoTitle,
     );
   }
 }
@@ -114,7 +118,7 @@ class VideoController {
   }
 
   // Recreate player config with new URL or settings
-  void updatePlayerConfig({String? newUrl, bool? autoPlay, PlayerTheme? theme}) {
+  void updatePlayerConfig({String? newUrl, bool? autoPlay, PlayerTheme? theme, String? videoTitle}) {
     final currentConfig = _state.value.playerConfig;
     if (currentConfig != null) {
       final newPlayerConfig = PlayerConfig(
@@ -135,7 +139,7 @@ class VideoController {
         hlsUrl = newUrl;
       }
 
-      _updateState(_state.value.copyWith(playerConfig: newPlayerConfig));
+      _updateState(_state.value.copyWith(playerConfig: newPlayerConfig, currentVideoTitle: videoTitle));
     }
   }
 

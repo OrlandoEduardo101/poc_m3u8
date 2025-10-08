@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:m3u8_player_plus/m3u8_player_plus.dart';
 import '../video_player_provider.dart';
+import 'shared_video_player.dart';
 
 class MiniPlayer extends StatefulWidget {
   const MiniPlayer({super.key});
@@ -31,8 +31,8 @@ class _MiniPlayerState extends State<MiniPlayer> {
 
         return Positioned(
           bottom: 16,
-          left: 16,
-          right: 16,
+          left: 20,
+          right: 20,
           child: GestureDetector(
             onTap: () {
               final videoController = VideoPlayerInheritedWidget.of(context)!.videoController;
@@ -67,53 +67,73 @@ class _MiniPlayerState extends State<MiniPlayer> {
               elevation: 8,
               borderRadius: BorderRadius.circular(12),
               child: Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    // Mini video preview
-                    Container(
-                      width: 160,
-                      height: 90,
-                      decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)),
-                      child: videoState.playerConfig != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: SizedBox(
-                                width: 160,
-                                height: 90,
-                                child: M3u8PlayerWidget(config: videoState.playerConfig!),
-                              ),
-                            )
-                          : const Icon(Icons.play_circle_outline, color: Colors.white),
+                    // Mini video preview - usando Flexible para permitir redimensionamento
+                    Flexible(
+                      flex: 0,
+                      child: Container(
+                        width: 120,
+                        height: 68,
+                        decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)),
+                        child: videoState.playerConfig != null
+                            ? IgnorePointer(
+                                child: SharedVideoPlayerWidget(config: videoState.playerConfig!, isMinimized: true),
+                              )
+                            : const Icon(Icons.play_circle_outline, color: Colors.white, size: 30),
+                      ),
                     ),
-                    const SizedBox(width: 12),
-                    const Expanded(
+                    const SizedBox(width: 8),
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('Stream HLS', style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text('Tocando agora...', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text(
+                            videoState.currentVideoTitle,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                          Text(
+                            'Tocando agora...',
+                            style: const TextStyle(fontSize: 10, color: Colors.grey),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
                         ],
                       ),
                     ),
-                    IconButton(
-                      icon: Icon(videoState.isPlaying ? Icons.pause : Icons.play_arrow),
-                      onPressed: () {
-                        final videoController = VideoPlayerInheritedWidget.of(context)!.videoController;
-                        videoController.setPlaying(!videoState.isPlaying);
-                      },
+                    SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: IconButton(
+                        iconSize: 20,
+                        padding: EdgeInsets.zero,
+                        icon: Icon(videoState.isPlaying ? Icons.pause : Icons.play_arrow),
+                        onPressed: () {
+                          final videoController = VideoPlayerInheritedWidget.of(context)!.videoController;
+                          videoController.setPlaying(!videoState.isPlaying);
+                        },
+                      ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () {
-                        final videoController = VideoPlayerInheritedWidget.of(context)!.videoController;
-                        videoController.setMinimized(false);
-                      },
+                    SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: IconButton(
+                        iconSize: 18,
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(Icons.close),
+                        onPressed: () {
+                          final videoController = VideoPlayerInheritedWidget.of(context)!.videoController;
+                          videoController.setMinimized(false);
+                        },
+                      ),
                     ),
                   ],
                 ),
