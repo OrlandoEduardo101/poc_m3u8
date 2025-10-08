@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
-import '../state_management/video_controller.dart';
+import 'package:m3u8_player_plus/m3u8_player_plus.dart';
+import '../video_player_provider.dart';
 
 class MiniPlayer extends StatefulWidget {
   const MiniPlayer({super.key});
@@ -10,191 +9,111 @@ class MiniPlayer extends StatefulWidget {
   State<MiniPlayer> createState() => _MiniPlayerState();
 }
 
-class _MiniPlayerState extends State<MiniPlayer> with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<Offset> _slideAnimation;
+class _MiniPlayerState extends State<MiniPlayer> {
   Offset? _startPanPosition;
   bool _isDragging = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutBack,
-    ));
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
+  void _handleSwipeUp() {
+    final videoController = VideoPlayerInheritedWidget.of(context)!.videoController;
+    videoController.setMinimized(false);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<VideoController>(
-      builder: (context, vc, _) {
-        if (!vc.isInitialized || !vc.isMinimized) {
-          _animationController.reverse();
+    final videoController = VideoPlayerInheritedWidget.of(context)!.videoController;
+
+    return ValueListenableBuilder(
+      valueListenable: videoController.state,
+      builder: (context, videoState, child) {
+        if (!videoState.isMinimized || !videoState.isInitialized) {
           return const SizedBox.shrink();
         }
-        
-        final controller = vc.playerController;
-        if (controller == null || !vc.isInitialized) return const SizedBox.shrink();
-        
-        // Verifica se o controlador ainda está válido
-        try {
-          controller.videoPlayerController?.value;
-        } catch (e) {
-          print('Controller disposed, rebuilding...');
-          return const SizedBox.shrink();
-        }
-        
-        // Inicia a animação quando o miniplayer aparece
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (vc.isMinimized) {
-            _animationController.forward();
-          }
-        });
-        
-        return SlideTransition(
-          position: _slideAnimation,
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              margin: const EdgeInsets.all(12),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              height: 96,
-              decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: GestureDetector(
-                onPanStart: (details) {
-                  _startPanPosition = details.globalPosition;
-                  _isDragging = false;
-                },
-                onPanUpdate: (details) {
-                  if (_startPanPosition == null || _isDragging) return;
-                  
-                  final delta = details.globalPosition - _startPanPosition!;
-                  final distance = delta.distance;
-                  
-                  // Detecta movimento diagonal (para cima e para a esquerda)
-                  if (distance > 80) {
-                    final dx = delta.dx;
-                    final dy = delta.dy;
-                    
-                    // Verifica se é movimento diagonal para cima-esquerda
-                    if (dx < -30 && dy < -30) {
-                      _isDragging = true;
-                      vc.setMinimized(false);
-                    }
-                  }
-                },
-                onPanEnd: (details) {
-                  _startPanPosition = null;
-                  _isDragging = false;
-                },
+
+        return Positioned(
+          bottom: 16,
+          left: 16,
+          right: 16,
+          child: GestureDetector(
+            onTap: () {
+              final videoController = VideoPlayerInheritedWidget.of(context)!.videoController;
+              videoController.setMinimized(false);
+            },
+            onPanStart: (details) {
+              _startPanPosition = details.globalPosition;
+              _isDragging = false;
+            },
+            onPanUpdate: (details) {
+              if (_startPanPosition == null || _isDragging) return;
+
+              final delta = details.globalPosition - _startPanPosition!;
+              final distance = delta.distance;
+
+              if (distance > 60) {
+                final dx = delta.dx;
+                final dy = delta.dy;
+
+                // Swipe up and left to restore
+                if (dx < -20 && dy < -20) {
+                  _isDragging = true;
+                  _handleSwipeUp();
+                }
+              }
+            },
+            onPanEnd: (details) {
+              _startPanPosition = null;
+              _isDragging = false;
+            },
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Row(
                   children: [
-                    GestureDetector(
-                      onTap: () => vc.setMinimized(false),
-                      child: const Icon(Icons.keyboard_arrow_up, color: Colors.white),
-                    ),
-                    const SizedBox(width: 8),
-                    // Thumbnail video view - apenas visual, sem nova instância
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        width: 160,
-                        height: 90,
-                        color: Colors.black,
-                        child: Stack(
-                          children: [
-                            // Background com cor sólida ou thumbnail se disponível
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Colors.blue.shade800,
-                                    Colors.purple.shade800,
-                                  ],
-                                ),
+                    // Mini video preview
+                    Container(
+                      width: 160,
+                      height: 90,
+                      decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)),
+                      child: videoState.playerConfig != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: SizedBox(
+                                width: 160,
+                                height: 90,
+                                child: M3u8PlayerWidget(config: videoState.playerConfig!),
                               ),
-                            ),
-                            // Overlay com informações do vídeo
-                            const Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.play_circle_outline,
-                                    color: Colors.white,
-                                    size: 32,
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'HLS Stream',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                            )
+                          : const Icon(Icons.play_circle_outline, color: Colors.white),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
+                    const SizedBox(width: 12),
+                    const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            'Reproduzindo stream HLS',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: Colors.white, fontSize: 14),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Arraste diagonalmente para restaurar',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 10,
-                            ),
-                          ),
+                          Text('Stream HLS', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text('Tocando agora...', style: TextStyle(fontSize: 12, color: Colors.grey)),
                         ],
                       ),
                     ),
                     IconButton(
-                      icon: Icon(vc.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white),
-                      onPressed: vc.togglePlayPause,
+                      icon: Icon(videoState.isPlaying ? Icons.pause : Icons.play_arrow),
+                      onPressed: () {
+                        final videoController = VideoPlayerInheritedWidget.of(context)!.videoController;
+                        videoController.setPlaying(!videoState.isPlaying);
+                      },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
-                      onPressed: () => vc.setMinimized(false),
+                      icon: const Icon(Icons.close),
+                      onPressed: () {
+                        final videoController = VideoPlayerInheritedWidget.of(context)!.videoController;
+                        videoController.setMinimized(false);
+                      },
                     ),
                   ],
                 ),
@@ -206,5 +125,3 @@ class _MiniPlayerState extends State<MiniPlayer> with SingleTickerProviderStateM
     );
   }
 }
-
-

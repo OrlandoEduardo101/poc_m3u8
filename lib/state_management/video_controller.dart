@@ -1,138 +1,145 @@
-import 'package:better_player/better_player.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:m3u8_player_plus/m3u8_player_plus.dart';
 
-class VideoController extends ChangeNotifier {
-  VideoController({required this.hlsUrl});
+class VideoState {
+  final PlayerConfig? playerConfig;
+  final bool isMinimized;
+  final bool isInitialized;
+  final bool isPlaying;
+  final Duration position;
+  final Duration duration;
+  final bool isFullscreen;
 
-  final String hlsUrl;
+  const VideoState({
+    this.playerConfig,
+    this.isMinimized = false,
+    this.isInitialized = false,
+    this.isPlaying = false,
+    this.position = Duration.zero,
+    this.duration = Duration.zero,
+    this.isFullscreen = false,
+  });
 
-  BetterPlayerController? _playerController;
-  BetterPlayerController? get playerController => _playerController;
-
-  bool _isInitialized = false;
-  bool get isInitialized => _isInitialized;
-
-  bool _isPlaying = false;
-  bool get isPlaying => _isPlaying;
-
-  bool _isMinimized = false;
-  bool get isMinimized => _isMinimized;
-
-  List<BetterPlayerAsmsTrack> _tracks = <BetterPlayerAsmsTrack>[];
-  List<BetterPlayerAsmsTrack> get tracks => List.unmodifiable(_tracks);
-
-  void Function(BetterPlayerEvent event)? _eventListener;
-
-  Future<void> initialize() async {
-    if (_isInitialized && _playerController != null) return;
-
-    final dataSource = BetterPlayerDataSource(
-      BetterPlayerDataSourceType.network,
-      hlsUrl,
-      useAsmsSubtitles: false,
-      useAsmsTracks: true,
-      liveStream: false,
-      videoFormat: BetterPlayerVideoFormat.hls,
+  VideoState copyWith({
+    PlayerConfig? playerConfig,
+    bool? isMinimized,
+    bool? isInitialized,
+    bool? isPlaying,
+    Duration? position,
+    Duration? duration,
+    bool? isFullscreen,
+  }) {
+    return VideoState(
+      playerConfig: playerConfig ?? this.playerConfig,
+      isMinimized: isMinimized ?? this.isMinimized,
+      isInitialized: isInitialized ?? this.isInitialized,
+      isPlaying: isPlaying ?? this.isPlaying,
+      position: position ?? this.position,
+      duration: duration ?? this.duration,
+      isFullscreen: isFullscreen ?? this.isFullscreen,
     );
-
-    final config = BetterPlayerConfiguration(
-      autoPlay: true,
-      fit: BoxFit.contain,
-      autoDetectFullscreenDeviceOrientation: true,
-      expandToFill: false,
-      controlsConfiguration: const BetterPlayerControlsConfiguration(
-        enablePip: true,
-        enableQualities: true,
-        enableOverflowMenu: true,
-      ),
-    );
-
-    _playerController = BetterPlayerController(config);
-    await _playerController!.setupDataSource(dataSource);
-
-    _isInitialized = true;
-    _isPlaying = _playerController!.isPlaying() ?? false;
-    _tracks = _playerController!.betterPlayerAsmsTracks;
-
-    _eventListener = (event) {
-      if (event.betterPlayerEventType == BetterPlayerEventType.play) {
-        _isPlaying = true;
-        notifyListeners();
-      } else if (event.betterPlayerEventType == BetterPlayerEventType.pause ||
-          event.betterPlayerEventType == BetterPlayerEventType.finished) {
-        _isPlaying = false;
-        notifyListeners();
-      } else if (event.betterPlayerEventType == BetterPlayerEventType.setupDataSource) {
-        _tracks = _playerController!.betterPlayerAsmsTracks;
-        notifyListeners();
-      }
-    };
-    _playerController!.addEventsListener(_eventListener!);
-
-    notifyListeners();
-  }
-
-  void togglePlayPause() {
-    if (_playerController == null || !_isInitialized) return;
-    try {
-      final isNowPlaying = _playerController!.isPlaying();
-      if (isNowPlaying == true) {
-        _playerController!.pause();
-      } else {
-        _playerController!.play();
-      }
-    } catch (e) {
-      print('Error toggling play/pause: $e');
-    }
-  }
-
-  Future<void> seekRelative(Duration offset) async {
-    if (_playerController == null || !_isInitialized) return;
-    try {
-      final position = _playerController!.videoPlayerController!.value.position;
-      final target = position + offset;
-      await _playerController!.seekTo(target < Duration.zero ? Duration.zero : target);
-    } catch (e) {
-      print('Error seeking: $e');
-    }
-  }
-
-  Future<void> setQualityTrack(BetterPlayerAsmsTrack track) async {
-    if (_playerController == null || !_isInitialized) return;
-    try {
-      _playerController!.setTrack(track);
-      _tracks = _playerController!.betterPlayerAsmsTracks;
-      notifyListeners();
-    } catch (e) {
-      print('Error setting quality track: $e');
-    }
-  }
-
-  void enterPip() {
-    // BetterPlayer handles PiP on supported platforms when enabled in configuration
-    if (_playerController == null || !_isInitialized) return;
-    try {
-      _playerController?.enablePictureInPicture(_playerController!.betterPlayerGlobalKey!);
-    } catch (e) {
-      print('Error entering PiP: $e');
-    }
-  }
-
-  void setMinimized(bool value) {
-    if (_isMinimized == value) return;
-    _isMinimized = value;
-    notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    if (_eventListener != null && _playerController != null) {
-      _playerController!.removeEventsListener(_eventListener!);
-    }
-    _playerController?.dispose();
-    super.dispose();
   }
 }
 
+class VideoController {
+  final ValueNotifier<VideoState> _state = ValueNotifier(const VideoState());
+  String hlsUrl;
 
+  VideoController({required this.hlsUrl}) {
+    _initializePlayer();
+  }
+
+  // Getters
+  ValueNotifier<VideoState> get state => _state;
+  VideoState get currentState => _state.value;
+
+  void _initializePlayer() {
+    try {
+      final playerConfig = PlayerConfig(
+        url: hlsUrl,
+        autoPlay: true,
+        loop: false,
+        startPosition: 0,
+        enableProgressCallback: true,
+        progressCallbackInterval: 1,
+        onProgressUpdate: (position) {
+          _updateState(_state.value.copyWith(position: position));
+        },
+        onFullscreenChanged: (isFullscreen) {
+          _updateState(_state.value.copyWith(isFullscreen: isFullscreen));
+        },
+        completedPercentage: 0.95,
+        onCompleted: () {
+          debugPrint('Vídeo completo');
+        },
+        theme: PlayerTheme(
+          primaryColor: Colors.blue,
+          backgroundColor: Colors.black,
+          bufferColor: Colors.grey,
+          progressColor: Colors.red,
+          iconSize: 24.0,
+        ),
+      );
+
+      _updateState(
+        _state.value.copyWith(
+          playerConfig: playerConfig,
+          isInitialized: true,
+          isPlaying: true, // autoPlay is true
+        ),
+      );
+    } catch (e) {
+      debugPrint('Erro ao inicializar player: $e');
+    }
+  }
+
+  void _updateState(VideoState newState) {
+    _state.value = newState;
+  }
+
+  void setMinimized(bool isMinimized) {
+    _updateState(_state.value.copyWith(isMinimized: isMinimized));
+  }
+
+  void setPlaying(bool isPlaying) {
+    _updateState(_state.value.copyWith(isPlaying: isPlaying));
+  }
+
+  void updatePosition(Duration position) {
+    _updateState(_state.value.copyWith(position: position));
+  }
+
+  void updateDuration(Duration duration) {
+    _updateState(_state.value.copyWith(duration: duration));
+  }
+
+  // Recreate player config with new URL or settings
+  void updatePlayerConfig({String? newUrl, bool? autoPlay, PlayerTheme? theme}) {
+    final currentConfig = _state.value.playerConfig;
+    if (currentConfig != null) {
+      final newPlayerConfig = PlayerConfig(
+        url: newUrl ?? hlsUrl,
+        autoPlay: autoPlay ?? currentConfig.autoPlay,
+        loop: currentConfig.loop,
+        startPosition: currentConfig.startPosition,
+        enableProgressCallback: currentConfig.enableProgressCallback,
+        progressCallbackInterval: currentConfig.progressCallbackInterval,
+        onProgressUpdate: currentConfig.onProgressUpdate,
+        onFullscreenChanged: currentConfig.onFullscreenChanged,
+        completedPercentage: currentConfig.completedPercentage,
+        onCompleted: currentConfig.onCompleted,
+        theme: theme ?? currentConfig.theme,
+      );
+
+      if (newUrl != null) {
+        hlsUrl = newUrl;
+      }
+
+      _updateState(_state.value.copyWith(playerConfig: newPlayerConfig));
+    }
+  }
+
+  void dispose() {
+    _state.dispose();
+  }
+}
